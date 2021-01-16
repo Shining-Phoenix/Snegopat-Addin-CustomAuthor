@@ -11,6 +11,7 @@
 
 global.connectGlobals(SelfScript)
 import * as stdlib from "./std/std"
+stdlib.ts_require("TextWindow.js", SelfScript);
 
 /*@
 Является развитием скрипта "Авторский комментарий" (author.js) от автора: Александр Кунташов <kuntashov@gmail.com>, http://compaud.ru/blog
@@ -71,6 +72,13 @@ enum MarkerTypes {
     CHANGED ="МаркерИзменено"
 }
 
+function parseTpl() {
+    var a = [];    
+    for (var i=0; i<arguments.length;  i++)
+        a.push(arguments[i]);        
+    return snegopat.parseTemplateString('<?"", ' + a.join(',') + '>');
+}
+
 class AuthorSetting {
 
     protected markerFormatStringParameters = {}
@@ -93,7 +101,7 @@ class AuthorSetting {
 
         
     addFormatStringParam(name, code) {
-        var paramGetter = function (p) {
+        var paramGetter =  (p) => {
             return eval(code);
         }
         this.markerFormatStringParameters[name] = paramGetter;
@@ -140,7 +148,8 @@ class SetupFormControler extends AuthorSetting {
 
     constructor() {
         super()
-        this.form = loadScriptFormEpf(SelfScript.fullPath.replace(/js$/, 'epf'), "Форма ", this)      
+        const PathToForm = SelfScript.fullPath.replace(/js$/, 'epf')
+        this.form = loadScriptFormEpf(PathToForm, "Форма", this)      
     }
 
     //{ Обработчики элементов управления формы
@@ -245,10 +254,11 @@ class AuthorsComment extends AuthorSetting{
         //Павлюков С.Ю. - изменена строка: иначе дата должна была быть только последней
         //var ptn = /%(.+?)(?:#(.+)){0,1}%/ig;
         var ptn = /%(.+?)(?:#(.+^%)){0,1}%/ig;
-        return fmt.replace(ptn, function (match, p1, p2, offset, s) {
+        return fmt.replace(ptn,  (match, p1, p2, offset, s) => {
             // p1 - имя управляющей конструкции.
             // p2 - параметр управляющей конструкции (для ДатаВремя).
             //Павлюков С.Ю. - добавлено условие с разбором даты и формата
+            debugger
             if (p1.match("(.+)#(.+)")){
                 p1 = RegExp.$1;
                 p2 = RegExp.$2;
@@ -257,7 +267,8 @@ class AuthorsComment extends AuthorSetting{
                 Message('В настройках подписи для авторского комментария встретилась неизвестная конструкция "' + p1 + '"');
                 return p1;
             }
-            return this.markerFormatStringParameters[p1].call(null, p2);
+            const callingFunction: Function = this.markerFormatStringParameters[p1]
+            return callingFunction.call(null, p2);
         });
     }
     
